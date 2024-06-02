@@ -1,0 +1,30 @@
+version: '3'
+services:
+
+  service:
+    build:
+      context: ./../Internet_Market_test
+      dockerfile: ./../Internet_Market_test/.dockerfile
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: "host=postgres port=5432 user=postgres password=password dbname=market sslmode=disable connect_timeout=5"
+      PORT: ":8080"
+      SECRET: "r43t18sc"
+    deploy:
+      mode: replicated
+      replicas: 1
+
+  postgres:
+    image: "postgres:14.0"
+    ports:
+      - "5432:5432"
+    restart: always
+    deploy:
+      mode: replicated
+      replicas: 1
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: market
