@@ -25,14 +25,8 @@ func (p *ProductRepositoryImpl) CreateProduct(model *models.Product, idSeller in
 	}
 	defer conn.Release()
 
-	err = conn.QueryRow(context.Background(), "INSERT INTO products (name, price) VALUES ($1, $2) RETURNING id",
-		model.Name, model.Price).Scan(&idProduct)
-	if err != nil {
-		return 0, err
-	}
-
-	_, err = conn.Query(context.Background(), "INSERT INTO sellers_products (sellers_id, products_id) VALUES ($1, $2)",
-		idSeller, idProduct)
+	err = conn.QueryRow(context.Background(), "INSERT INTO products (name, price, sellers_id) VALUES ($1, $2, $3) RETURNING id",
+		model.Name, model.Price, idSeller).Scan(&idProduct)
 	if err != nil {
 		return 0, err
 	}
@@ -48,8 +42,8 @@ func (p *ProductRepositoryImpl) GetProductsSeller(idSeller int32) ([]models.Prod
 	rows, err := conn.Query(context.Background(),
 		`SELECT p.id, p.name, p.price
 		FROM products p
-		JOIN sellers_products sp ON p.id = sp.products_id
-		WHERE sp.sellers_id = $1`, idSeller)
+		JOIN sellers s ON p.sellers_id = s.id
+		WHERE p.sellers_id = $1`, idSeller)
 	if err != nil {
 		return nil, err
 	}
@@ -71,13 +65,8 @@ func (p *ProductRepositoryImpl) GetProductByID(id int32) (models.ProductResponse
 	}
 	defer conn.Release()
 	var product models.ProductResponse
-	err = conn.QueryRow(context.Background(), "SELECT id, name, price FROM products WHERE id = $1", id).
-		Scan(&product.Id, &product.Name, &product.Price)
-	if err != nil {
-		return models.ProductResponse{}, err
-	}
-	err = conn.QueryRow(context.Background(), "SELECT sellers_id FROM sellers_products WHERE products_id = $1", id).
-		Scan(&product.SellerId)
+	err = conn.QueryRow(context.Background(), "SELECT id, name, price, sellers_id FROM products WHERE id = $1", id).
+		Scan(&product.Id, &product.Name, &product.Price, &product.SellerId)
 	if err != nil {
 		return models.ProductResponse{}, err
 	}
@@ -103,10 +92,6 @@ func (p *ProductRepositoryImpl) DeleteProduct(idProduct int32) error {
 		return err
 	}
 	defer conn.Release()
-	_, err = conn.Exec(context.Background(), `DELETE FROM sellers_products WHERE products_id = $1`, idProduct)
-	if err != nil {
-		return err
-	}
 	_, err = conn.Exec(context.Background(), "DELETE FROM products WHERE id = $1", idProduct)
 	if err != nil {
 		return err
@@ -121,9 +106,8 @@ func (p *ProductRepositoryImpl) GetProducts() ([]models.ProductResponse, error) 
 	}
 	defer conn.Release()
 	rows, err := conn.Query(context.Background(), `
-        SELECT p.id, p.name, p.price, sp.sellers_id
+        SELECT p.id, p.name, p.price, s.sellers_id
         FROM products p
-        LEFT JOIN sellers_products sp ON p.id = sp.products_id
     `)
 	if err != nil {
 		return nil, err

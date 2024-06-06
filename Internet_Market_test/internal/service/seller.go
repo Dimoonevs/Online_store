@@ -29,7 +29,7 @@ func (s *SellerServiceImpl) GetSellers() ([]models.SellerResponse, error) {
 func (s *SellerServiceImpl) GetSellerByID(id int32) (models.SellerResponse, error) {
 	return s.repo.GetSellerByID(id)
 }
-func (s *SellerServiceImpl) UpdateSeller(model *models.Online_storeSeller, id int32) error {
+func (s *SellerServiceImpl) UpdateSeller(model *models.Seller, id int32) error {
 	return s.repo.UpdateSeller(model, id)
 }
 func (s *SellerServiceImpl) DeleteSeller(id int32) error {
